@@ -80,5 +80,8 @@ Instead of using heavy engines like Matter.js, I implemented a lightweight physi
 3. **Release** to launch. The further you drag, the stronger the force.
 4. Knock opponents off the board to grow!
 
+> 💡 **Need more details?**
+> For advanced configurations, API specs, and internal architecture, please refer to the [Detailed Manual (DETAILS.en.md)](./DETAILS.en.md).
+
 ---
 Developed with ❤️ by [Your Name/Github]
