@@ -2,6 +2,11 @@
 
 **[English Version](./README.en.md)**
 
+**Preview**
+https://github.com/user-attachments/assets/20bc9007-97ea-4cc4-948a-e1d901ea8f4b
+
+
+
 전통적인 알까기 놀이를 현대적인 웹 기술로 재해석한 **Alkkagi.io**입니다. 이 프로젝트는 실시간 멀티플레이어 환경에서의 정밀한 물리 동기화와 커스텀 물리 엔진 구현에 중점을 두었습니다.
 
 ## 프로젝트 개요
