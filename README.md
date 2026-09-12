@@ -1,92 +1,107 @@
 # Alkkagi.io
 
-**[English Version](./README.en.md)**
+**[English](./README.en.md) · [기술 상세](./DETAILS.md) · [웹 포트폴리오](https://seminkong.github.io/SeMinKong_Web/work/alkkagi/)**
 
-**Preview**
+브라우저에서 자신의 돌을 드래그로 튕겨 상대 돌을 보드 밖으로 밀어내는 실시간 멀티플레이 게임입니다. 서버가 입력 제한·이동·마찰·충돌·득점을 계산하고, 클라이언트는 조준 입력과 상태 표시를 맡습니다.
+
+2026.03–04 개인 프로젝트로 React 조준 UI, Socket.IO 통신, Node.js 게임 서버와 TypeScript 물리 함수를 구현했습니다.
+
+### Preview
 
 <video src="https://github.com/user-attachments/assets/20bc9007-97ea-4cc4-948a-e1d901ea8f4b" width="600" controls></video>
 
+[플레이 영상 열기](https://github.com/user-attachments/assets/20bc9007-97ea-4cc4-948a-e1d901ea8f4b)
 
-전통적인 알까기 놀이를 현대적인 웹 기술로 재해석한 **Alkkagi.io**입니다. 이 프로젝트는 실시간 멀티플레이어 환경에서의 정밀한 물리 동기화와 커스텀 물리 엔진 구현에 중점을 두었습니다.
+## 구현한 내용
 
-## 프로젝트 개요
+| 범위 | 구현 |
+| --- | --- |
+| 조준 UI | 드래그를 속도 벡터로 변환, 본인 돌 선택, 조준선·쿨다운 표시 |
+| 입력 제한 | 접속자에 연결된 돌 확인, 500ms 재입력 거절, 보드 크기 비례 속도 상한과 질량 적용 |
+| 서버 물리 | 열 번의 소단계 이동·마찰·겹침 보정·충격량 계산 |
+| 게임 규칙 | 보드 이탈 판정, 득점 이전·재배치, 점수에 따른 반경·질량 변경 |
+| 상태 공유 | 서버 메모리의 기준 상태를 `gameStateUpdate`로 배포 |
+| 화면 | React DOM/CSS 돌 렌더링, SVG 조준선·쿨다운, 리더보드·킬 알림 |
 
-Alkkagi.io는 플레이어가 자신의 돌을 튕겨 상대방을 보드 밖으로 밀어내는 실시간 아레나 게임입니다. 상대를 제거할 때마다 돌의 크기와 무게가 커지며, 이는 전장에서 더 강력한 힘을 갖게 함과 동시에 기동성이 낮아지는 전략적 재미를 제공합니다.
-
-- **실시간 멀티플레이어**: Socket.io를 활용하여 저지연(Low-latency) 상호작용을 구현했습니다.
-- **커스텀 물리 엔진**: 외부 라이브러리 없이 충돌, 마찰, 모멘텀을 계산하는 경량 물리 엔진을 직접 작성했습니다.
-- **동적 아레나**: 플레이어 수에 따라 게임 보드 크기가 실시간으로 확장 및 축소됩니다.
-- **성장 시스템**: 킬 수에 따라 돌의 물리적 특성(반경, 질량)이 변하는 성장 메커니즘을 포함합니다.
-
-## 기술 스택
-
-- **Frontend**: React 19, TypeScript, Vite
-- **Backend**: Node.js, Express, Socket.io
-- **Physics**: TypeScript 기반 커스텀 물리 모듈
-- **Styling**: 고성능 렌더링을 위한 Vanilla CSS
-
-## 프로젝트 구조
-
-```text
-Alkkagi/
-├── client/           # React 프론트엔드 (Vite 기반)
-│   ├── src/
-│   │   ├── components/  # Canvas 렌더링 및 UI 컴포넌트
-│   │   └── App.tsx      # 소켓 관리 및 코어 비즈니스 로직
-├── server/           # Node.js 백엔드
-│   ├── index.ts      # 소켓 이벤트 핸들러 및 60FPS 게임 루프
-│   ├── physics.ts    # 충돌 처리 및 물리 시뮬레이션 로직
-│   └── constants.ts  # 게임 밸런스 상수 정의
+```mermaid
+flowchart LR
+    Drag[드래그 조준] -->|flick vx/vy| Input[서버 입력 제한]
+    Input --> State[서버 메모리 게임 상태]
+    State --> Physics[10개 소단계 / 이동·마찰·충돌]
+    Physics --> Rules[보드 이탈·점수·재배치]
+    Rules --> State
+    State -->|gameStateUpdate| UI[React DOM / SVG]
 ```
 
-## 주요 기술적 도전
+## 핵심 설계 판단
 
-### 1. 실시간 물리 동기화
-다양한 네트워크 환경에서도 모든 플레이어가 동일한 물리적 상태를 공유하도록 서버를 **Source of Truth**로 설정했습니다. 서버는 60 FPS로 물리 시뮬레이션을 수행하고, 계산된 상태를 모든 클라이언트에 브로드캐스팅합니다.
+**게임 판정을 서버에 모았습니다.** 클라이언트가 전달하는 발사 벡터에 서버가 쿨다운·속도 상한·질량을 적용하고, 위치·속도·점수를 한곳에서 갱신합니다. 이 구조는 판정의 기준을 정한 것이며 지연이나 동시 접속 성능을 측정한 결과는 아닙니다.
 
-### 2. 정밀한 충돌 로직 구현
-Matter.js와 같은 무거운 엔진 대신, 프로젝트에 최적화된 물리 모듈을 구현하여 다음을 해결했습니다.
-- **탄성 충돌(Elastic Collisions)**: 질량과 속도에 기반한 임펄스(Impulse) 계산.
-- **위치 보정(Position Correction)**: 고속 충돌 시 돌들이 서로 겹치는 현상 방지.
-- **동적 스케일링**: 실시간으로 변화하는 질량과 반경에 따른 물리 반응 차별화.
+**위치 보정과 속도 반응을 분리했습니다.** 겹친 거리는 양쪽 돌에 절반씩 나누어 위치를 보정합니다. 이미 충돌 법선 방향으로 멀어지면 충격량을 생략하고, 그 외에는 반발계수 `0.7`과 역질량을 사용해 속도를 갱신합니다. 위치 보정은 질량 비례가 아닙니다.
+
+**소단계에서 마찰을 반복 적용할 때 비율을 조절합니다.** 한 갱신을 10번으로 나누고 매번 `0.8 ** 0.1`을 곱합니다. 충돌·정지 절삭·재배치가 없다면 열 번 뒤 속도는 원래의 `0.8`배입니다. 타이머는 `1000 / 60`ms 설정이며 실제 경과 시간 보정이나 지속 60 FPS 보장은 없습니다.
+
+[입력 계산 예시·충돌 수식·게임 규칙·이벤트 명세](./DETAILS.md)에 구현 세부를 정리했습니다.
+
+## 기술 스택과 구조
+
+- React 19, TypeScript, Vite 8
+- Node.js, Express, Socket.IO
+- TypeScript 물리 모듈, DOM/CSS·SVG 렌더링
+
+```text
+client/src/App.tsx                 접속·소켓·조준 입력
+client/src/components/GameCanvas.tsx DOM 돌과 SVG 조준선·쿨다운
+client/src/components/LeaderBoard.tsx 순위표
+client/src/components/KillNotifications.tsx 킬 알림
+server/index.ts                    입력·게임 루프·득점·연결 정리
+server/physics.ts                  위치·마찰·충돌·돌의 성장
+server/constants.ts                게임 설정
+```
+
+`GameCanvas`는 컴포넌트 이름이며 HTML Canvas API를 사용한다는 뜻은 아닙니다.
 
 ## 시작하기
 
-### 사전 요구사항
-- Node.js (v18 이상)
-- npm
+Node.js **22.12 이상**과 npm을 사용합니다. 현재 클라이언트 lockfile의 Vite 8·React 플러그인 요구 범위는 `^20.19.0 || >=22.12.0`입니다.
 
-### 설치 및 실행
+```bash
+git clone https://github.com/SeMinKong/Alkkagi.git
+cd Alkkagi
+```
 
-1. **저장소 클론**
-   ```bash
-   git clone https://github.com/your-repo/Alkkagi.git
-   cd Alkkagi
-   ```
+첫 번째 터미널에서 서버를 실행합니다.
 
-2. **서버 실행**
-   ```bash
-   cd server
-   npm install
-   npm run dev
-   ```
+```bash
+cd server
+npm install
+npm run dev
+```
 
-3. **클라이언트 실행**
-   ```bash
-   cd ../client
-   npm install
-   npm run dev
-   ```
+두 번째 터미널을 저장소 루트에서 열어 클라이언트를 실행합니다.
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+PowerShell에서 npm 스크립트 실행이 차단되면 `npm.cmd`를 사용합니다. Vite가 표시하는 로컬 URL을 열고 닉네임과 서버 호스트를 입력합니다. 같은 컴퓨터에서는 `localhost`를 입력하면 됩니다. 현재 클라이언트 접속 주소는 `http://<입력한 호스트>:3001`, 서버 바인딩은 `0.0.0.0:3001`입니다.
+
+클라이언트 빌드와 정적 검사는 `client`에서 `npm run build`, `npm run lint`로 실행합니다. 서버의 `npm test`는 아직 테스트가 없는 placeholder이므로 검증 완료 명령으로 사용하지 않습니다.
 
 ## 게임 방법
 
-1. 닉네임을 입력하고 서버에 접속합니다.
-2. 금색 테두리로 표시된 자신의 돌을 **클릭 후 반대 방향으로 드래그**합니다.
-3. 마우스를 놓으면 돌이 튕겨 나갑니다. 드래그 거리가 멀수록 힘이 강해집니다.
-4. 상대를 밀어내어 돌을 키우고 리더보드의 정상을 차지하세요!
+1. 닉네임과 서버 호스트를 입력해 참가합니다.
+2. 금색 테두리로 표시된 본인 돌을 클릭하고 발사할 방향의 반대로 드래그합니다.
+3. 마우스를 놓아 돌을 튕깁니다. 드래그 거리는 상한까지 발사 입력의 크기에 반영됩니다.
+4. 상대를 보드 밖으로 밀어내 점수를 얻습니다. 점수가 늘면 반경·질량이 커지고 같은 발사 입력의 속도는 줄어듭니다.
 
->  **더 자세한 정보가 필요하신가요?**
-> 상세한 기술 명세, API 연동 방식, 하이퍼파라미터 등은 [상세 매뉴얼(DETAILS.md)](./DETAILS.md)에서 확인하실 수 있습니다.
+## 확인 범위와 남은 과제
 
----
-Developed with  by [Your Name/Github]
+- 설명은 [현재 구현 `530229c5`](https://github.com/SeMinKong/Alkkagi/tree/530229c524a432c0016a28376a5c6fccd8f8e5b5)와 기존 플레이 자료를 기준으로 합니다. 지속 FPS·네트워크 지연·동시 접속 수의 실측값은 없습니다.
+- 서버 상태는 한 프로세스의 메모리에만 있습니다. 연결 종료 시 플레이어와 돌을 지우며 재접속·서버 재시작 후 점수 복구는 없습니다.
+- 클라이언트 예측·서버 결과 재조정, 연속 충돌 검출, 완전한 입력 스키마 검증은 구현하지 않았습니다.
+- 물리 회귀 테스트, 유한한 숫자 입력 검증, 반복 참가 처리, 부하·지연 측정이 후속 과제입니다. 자세한 경계 조건은 [기술 상세](./DETAILS.md)를 참고하세요.
+
+Developed by [공세민 / Se Min Kong](https://github.com/SeMinKong).
