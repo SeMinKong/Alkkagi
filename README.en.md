@@ -4,7 +4,7 @@
 
 A real-time multiplayer browser game in which players drag and release their stones to knock opponents off the board. The server computes input limits, movement, friction, collisions, and scoring; clients provide aiming input and display state.
 
-An individual project developed in March–April 2026, covering the React aiming UI, Socket.IO communication, Node.js game server, and TypeScript physics functions.
+I built the React aiming UI, Socket.IO communication, Node.js game server, and TypeScript physics functions as an individual project from March to April 2026.
 
 ### Preview
 
@@ -103,5 +103,3 @@ Run `npm run build` and `npm run lint` from `client` for its build and static ch
 - Game state exists only in one server process. Disconnect removes the player and stones; reconnect/restart score recovery is absent.
 - Client prediction/reconciliation, continuous collision detection and complete input-schema validation are not implemented.
 - Physics regression tests, finite-number input checks, repeated-join handling, and load/latency measurements remain future work. [Technical details](./DETAILS.en.md) describe edge cases.
-
-Developed by [Se Min Kong](https://github.com/SeMinKong).
