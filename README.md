@@ -23,7 +23,7 @@
 
 ## Preview
 
-<video src="https://github.com/user-attachments/assets/20bc9007-97ea-4cc4-948a-e1d901ea8f4b" width="600" controls></video>
+[플레이 영상 열기](https://github.com/user-attachments/assets/20bc9007-97ea-4cc4-948a-e1d901ea8f4b)
 
 ## 구현한 내용
 
